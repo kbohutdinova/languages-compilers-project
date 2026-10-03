@@ -1,0 +1,4 @@
+bool active {true};
+if active {
+    num32 x {10};
+}
