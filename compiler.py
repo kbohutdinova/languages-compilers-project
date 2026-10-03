@@ -204,7 +204,7 @@ class Lexer:
         char = chr(byte)
 
         # Identifier / keyword
-        if char.isalpha() or char == "_":
+        if char.isalpha():
             return self.lex_identifier()
 
         # Integer

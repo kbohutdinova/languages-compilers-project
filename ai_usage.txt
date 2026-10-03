@@ -1,0 +1,19 @@
+AI Usage Disclosure
+
+ChatGPT was used during Stage 1 of the project to help understand the assignment requirements and organize the implementation process step by step.
+
+AI was used to:
+- explain the project requirements and submission structure;
+- help design the language syntax and EBNF grammar;
+- suggest the AST class hierarchy;
+- help draft the hand-written lexer and recursive-descent parser;
+- help create valid and invalid test cases;
+- help prepare the test runner;
+- help structure and edit the README;
+- assist with Git and GitHub workflow during development.
+
+The generated code and text were not submitted without checking. The compiler was run locally, the AST output was reviewed, and all test cases were executed and compared with the expected results. Some parts were adjusted during development to make the lexer, grammar, parser, and tests consistent with each other.
+
+The final implementation includes the lexer, parser, AST structure, grammar, test suite, README, and project repository organization.
+
+Chat transcript: https://chatgpt.com/share/6ac1179d-9970-83ed-bceb-a028c81795dd
