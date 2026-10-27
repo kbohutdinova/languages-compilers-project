@@ -1,0 +1,11 @@
+Program
+  Declaration line=1 column=1
+    type=num32
+    name=x
+    mutable=false
+    value
+      BinaryExpr operator=* line=1 column=13
+        left
+          Integer value=10 line=1 column=10
+        right
+          Integer value=5 line=1 column=15

@@ -1,0 +1,9 @@
+num32 mut x {10};
+num64 y {100};
+bool active {x != 0};
+x := x + 5;
+if active {
+    x := x * 2;
+} else {
+    x := 0;
+}

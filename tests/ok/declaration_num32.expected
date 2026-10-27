@@ -1,0 +1,7 @@
+Program
+  Declaration line=1 column=1
+    type=num32
+    name=x
+    mutable=false
+    value
+      Integer value=10 line=1 column=10

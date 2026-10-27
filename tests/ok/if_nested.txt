@@ -1,0 +1,9 @@
+bool a {true};
+bool b {false};
+if a {
+    if b {
+        num32 x {1};
+    } else {
+        num32 x {2};
+    }
+}

@@ -1,0 +1,6 @@
+bool active {false};
+if active {
+    num32 x {10};
+} else {
+    num32 x {20};
+}
