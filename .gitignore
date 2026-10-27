@@ -1,2 +1,10 @@
+.venv/
+.idea/
 __pycache__/
 *.pyc
+*.ll
+*.o
+*.out
+.DS_Store
+/output
+/stage2_test.txt

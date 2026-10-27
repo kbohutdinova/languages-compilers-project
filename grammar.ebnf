@@ -1,84 +1,48 @@
-program = statement* ;
-
-statement =
-      declaration
-    | assignment
-    | if_statement
-    ;
-
-declaration =
-    type [ "mut" ] identifier "{" expression "}" ";"
-    ;
-
-type =
-      "num32"
-    | "num64"
-    | "bool"
-    ;
-
-assignment =
-    identifier ":=" expression ";"
-    ;
-
-if_statement =
-    "if" expression "{"
-        statement+
-    "}"
-    [ "else" "{"
-        statement+
-    "}" ]
-    ;
-
-expression =
-    equality
-    ;
-
-equality =
-    additive { ( "==" | "!=" ) additive }
-    ;
-
-additive =
-    multiplicative { ( "+" | "-" ) multiplicative }
-    ;
-
-multiplicative =
-    primary { ( "*" | "/" ) primary }
-    ;
-
-primary =
-      integer
-    | boolean
-    | identifier
-    | "(" expression ")"
-    ;
-
-boolean =
-      "true"
-    | "false"
-    ;
-
-integer =
-    digit { digit }
-    ;
-
-identifier =
-    letter { letter | digit | "_" }
-    ;
-
-letter =
-      "a" | "b" | "c" | "d" | "e" | "f"
-    | "g" | "h" | "i" | "j" | "k" | "l"
-    | "m" | "n" | "o" | "p" | "q" | "r"
-    | "s" | "t" | "u" | "v" | "w" | "x"
-    | "y" | "z"
-    | "A" | "B" | "C" | "D" | "E" | "F"
-    | "G" | "H" | "I" | "J" | "K" | "L"
-    | "M" | "N" | "O" | "P" | "Q" | "R"
-    | "S" | "T" | "U" | "V" | "W" | "X"
-    | "Y" | "Z"
-    ;
-
-digit =
-      "0" | "1" | "2" | "3" | "4"
-    | "5" | "6" | "7" | "8" | "9"
-    ;
+program = { top_level_item } ;
+top_level_item = structure_declaration | function_declaration | statement ;
+statement = declaration | assignment | if_statement | return_statement
+          | print_statement | expression_statement ;
+declaration = primitive_type [ "mut" ] identifier "{" expression "}" ";"
+            | identifier [ "mut" ] identifier "{" [ arguments ] "}" ";" ;
+primitive_type = "num32" | "num64" | "bool" ;
+type = primitive_type | identifier ;
+assignment = access_chain ":=" expression ";" ;
+if_statement = "if" expression "{" statement+ "}"
+             [ "else" "{" statement+ "}" ] ;
+function_declaration = "action" identifier "(" [ parameters ] ")"
+                       "->" type "{" statement+ "}" ;
+parameters = parameter { "," parameter } ;
+parameter = type identifier ;
+return_statement = "give" expression ";" ;
+structure_declaration = "shape" identifier "{" structure_member+ "}" ;
+structure_member = field_declaration | function_declaration ;
+field_declaration = type [ "mut" ] identifier ";" ;
+print_statement = "print" "(" ( string | expression ) ")" ";" ;
+expression_statement = call_expression ";" ;
+expression = equality ;
+equality = additive { ( "==" | "!=" ) additive } ;
+additive = multiplicative { ( "+" | "-" ) multiplicative } ;
+multiplicative = unary { ( "*" | "/" ) unary } ;
+unary = [ "-" ] postfix ;
+postfix = primary { "." identifier [ "(" [ arguments ] ")" ]
+                  | "(" [ arguments ] ")" } ;
+primary = integer | boolean | identifier | object_creation
+        | "read" "(" ")" | "(" expression ")" ;
+object_creation = identifier "{" [ arguments ] "}" ;
+arguments = expression { "," expression } ;
+access_chain = identifier { "." identifier } ;
+call_expression = identifier "(" [ arguments ] ")"
+                { "." identifier [ "(" [ arguments ] ")" ] } ;
+boolean = "true" | "false" ;
+integer = digit { digit } ;
+identifier = letter { letter | digit | "_" } ;
+string = '"' { string_char | escape_sequence } '"' ;
+string_char = ? printable ASCII character except double quote and backslash ? ;
+escape_sequence = "\\n" | "\\t" | "\\\"" | "\\\\" ;
+letter = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i"
+       | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r"
+       | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z"
+       | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I"
+       | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R"
+       | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" ;
+digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;

@@ -1,0 +1,1 @@
+action f(num32 a) -> num32 { give g(a); } action g(num32 a) -> num32 { give a * 2; } print(f(6));

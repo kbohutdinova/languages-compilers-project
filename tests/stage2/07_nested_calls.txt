@@ -1,0 +1,1 @@
+action square(num32 n) -> num32 { give n*n; } print(square(square(2)));

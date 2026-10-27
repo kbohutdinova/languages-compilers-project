@@ -1,0 +1,1 @@
+action a() -> bool { give 5; }

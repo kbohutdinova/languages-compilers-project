@@ -1,21 +1,11 @@
 import sys
 
-
-# ============================================================
-# ERRORS
-# ============================================================
-
 class CompilationError(Exception):
     def __init__(self, line, column, message):
         self.line = line
         self.column = column
         self.message = message
         super().__init__(message)
-
-
-# ============================================================
-# TOKENS
-# ============================================================
 
 TOKEN_EOF = "EOF"
 TOKEN_IDENTIFIER = "IDENTIFIER"
@@ -44,7 +34,16 @@ TOKEN_RBRACE = "RBRACE"
 TOKEN_LPAREN = "LPAREN"
 TOKEN_RPAREN = "RPAREN"
 TOKEN_SEMICOLON = "SEMICOLON"
+TOKEN_ACTION = "ACTION"
+TOKEN_SHAPE = "SHAPE"
+TOKEN_GIVE = "GIVE"
+TOKEN_READ = "READ"
+TOKEN_PRINT = "PRINT"
 
+TOKEN_ARROW = "ARROW"
+TOKEN_DOT = "DOT"
+TOKEN_COMMA = "COMMA"
+TOKEN_STRING = "STRING"
 
 KEYWORDS = {
     "num32": TOKEN_NUM32,
@@ -55,8 +54,12 @@ KEYWORDS = {
     "false": TOKEN_FALSE,
     "if": TOKEN_IF,
     "else": TOKEN_ELSE,
+    "action": TOKEN_ACTION,
+    "shape": TOKEN_SHAPE,
+    "give": TOKEN_GIVE,
+    "read": TOKEN_READ,
+    "print": TOKEN_PRINT,
 }
-
 
 class Token:
     def __init__(self, kind, text, line, column):
@@ -71,14 +74,8 @@ class Token:
             f"{self.line}:{self.column})"
         )
 
-
-# ============================================================
-# LEXER
-# ============================================================
-
 class Lexer:
     def __init__(self, source):
-        # Task requirement: lexer works over bytes.
         self.source = source.encode("utf-8")
         self.index = 0
         self.line = 1
@@ -125,7 +122,6 @@ class Lexer:
         while self.current() is not None:
             byte = self.current()
 
-            # Language identifiers are ASCII.
             if byte > 127:
                 break
 
@@ -177,6 +173,70 @@ class Lexer:
             start_column,
         )
 
+    def lex_string(self):
+        start_line = self.line
+        start_column = self.column
+
+        self.advance()
+        chars = []
+
+        while self.current() is not None:
+            byte = self.current()
+
+            if byte == ord('"'):
+                self.advance()
+                return Token(
+                    TOKEN_STRING,
+                    "".join(chars),
+                    start_line,
+                    start_column,
+                )
+
+            if byte == ord("\n"):
+                raise CompilationError(
+                    start_line,
+                    start_column,
+                    "unterminated string literal",
+                )
+
+            if byte == ord("\\"):
+                self.advance()
+                escaped = self.current()
+
+                escapes = {
+                    ord("n"): "\n",
+                    ord("t"): "\t",
+                    ord('"'): '"',
+                    ord("\\"): "\\",
+                }
+
+                if escaped not in escapes:
+                    raise CompilationError(
+                        self.line,
+                        self.column,
+                        "invalid string escape",
+                    )
+
+                chars.append(escapes[escaped])
+                self.advance()
+                continue
+
+            if byte < 32 or byte > 126:
+                raise CompilationError(
+                    self.line,
+                    self.column,
+                    "invalid character in string",
+                )
+
+            chars.append(chr(byte))
+            self.advance()
+
+        raise CompilationError(
+            start_line,
+            start_column,
+            "unterminated string literal",
+        )
+
     def next_token(self):
         self.skip_whitespace()
 
@@ -193,7 +253,6 @@ class Lexer:
                 start_column,
             )
 
-        # We currently use ASCII language symbols.
         if byte > 127:
             raise CompilationError(
                 start_line,
@@ -203,15 +262,15 @@ class Lexer:
 
         char = chr(byte)
 
-        # Identifier / keyword
+        if char == '"':
+            return self.lex_string()
+
         if char.isalpha():
             return self.lex_identifier()
 
-        # Integer
         if char.isdigit():
             return self.lex_integer()
 
-        # {
         if char == "{":
             self.advance()
             return Token(
@@ -221,7 +280,6 @@ class Lexer:
                 start_column,
             )
 
-        # }
         if char == "}":
             self.advance()
             return Token(
@@ -231,7 +289,6 @@ class Lexer:
                 start_column,
             )
 
-        # (
         if char == "(":
             self.advance()
             return Token(
@@ -241,7 +298,6 @@ class Lexer:
                 start_column,
             )
 
-        # )
         if char == ")":
             self.advance()
             return Token(
@@ -251,7 +307,6 @@ class Lexer:
                 start_column,
             )
 
-        # ;
         if char == ";":
             self.advance()
             return Token(
@@ -261,7 +316,24 @@ class Lexer:
                 start_column,
             )
 
-        # +
+        if char == ".":
+            self.advance()
+            return Token(
+                TOKEN_DOT,
+                ".",
+                start_line,
+                start_column,
+            )
+
+        if char == ",":
+            self.advance()
+            return Token(
+                TOKEN_COMMA,
+                ",",
+                start_line,
+                start_column,
+            )
+
         if char == "+":
             self.advance()
             return Token(
@@ -271,9 +343,18 @@ class Lexer:
                 start_column,
             )
 
-        # -
         if char == "-":
             self.advance()
+
+            if self.current() == ord(">"):
+                self.advance()
+                return Token(
+                    TOKEN_ARROW,
+                    "->",
+                    start_line,
+                    start_column,
+                )
+
             return Token(
                 TOKEN_MINUS,
                 "-",
@@ -281,7 +362,6 @@ class Lexer:
                 start_column,
             )
 
-        # *
         if char == "*":
             self.advance()
             return Token(
@@ -291,7 +371,6 @@ class Lexer:
                 start_column,
             )
 
-        # /
         if char == "/":
             self.advance()
             return Token(
@@ -301,7 +380,6 @@ class Lexer:
                 start_column,
             )
 
-        # :=
         if char == ":":
             self.advance()
 
@@ -321,7 +399,6 @@ class Lexer:
                 "expected '=' after ':'",
             )
 
-        # ==
         if char == "=":
             self.advance()
 
@@ -341,7 +418,6 @@ class Lexer:
                 "expected '=' after '='",
             )
 
-        # !=
         if char == "!":
             self.advance()
 
@@ -379,16 +455,10 @@ class Lexer:
 
         return tokens
 
-
-# ============================================================
-# AST
-# ============================================================
-
 class ASTNode:
     def __init__(self, line, column):
         self.line = line
         self.column = column
-
 
 class ProgramNode(ASTNode):
     def __init__(self, statements):
@@ -402,14 +472,11 @@ class ProgramNode(ASTNode):
         super().__init__(line, column)
         self.statements = statements
 
-
 class StmtNode(ASTNode):
     pass
 
-
 class ExprNode(ASTNode):
     pass
-
 
 class DeclarationNode(StmtNode):
     def __init__(
@@ -427,7 +494,6 @@ class DeclarationNode(StmtNode):
         self.mutable = mutable
         self.expression = expression
 
-
 class AssignmentNode(StmtNode):
     def __init__(
         self,
@@ -439,7 +505,6 @@ class AssignmentNode(StmtNode):
         super().__init__(line, column)
         self.name = name
         self.expression = expression
-
 
 class IfNode(StmtNode):
     def __init__(
@@ -455,7 +520,6 @@ class IfNode(StmtNode):
         self.if_body = if_body
         self.else_body = else_body
 
-
 class IntegerNode(ExprNode):
     def __init__(
         self,
@@ -465,7 +529,6 @@ class IntegerNode(ExprNode):
     ):
         super().__init__(line, column)
         self.value = value
-
 
 class BooleanNode(ExprNode):
     def __init__(
@@ -477,7 +540,6 @@ class BooleanNode(ExprNode):
         super().__init__(line, column)
         self.value = value
 
-
 class IdentifierNode(ExprNode):
     def __init__(
         self,
@@ -487,7 +549,6 @@ class IdentifierNode(ExprNode):
     ):
         super().__init__(line, column)
         self.name = name
-
 
 class BinaryExprNode(ExprNode):
     def __init__(
@@ -503,15 +564,93 @@ class BinaryExprNode(ExprNode):
         self.operator = operator
         self.right = right
 
+class ParameterNode(ASTNode):
+    def __init__(self, line, column, param_type, name):
+        super().__init__(line, column)
+        self.param_type = param_type
+        self.name = name
 
-# ============================================================
-# PARSER
-# ============================================================
+class FunctionNode(ASTNode):
+    def __init__(self, line, column, name, parameters, result_type, body):
+        super().__init__(line, column)
+        self.name = name
+        self.parameters = parameters
+        self.result_type = result_type
+        self.body = body
+
+class ReturnNode(StmtNode):
+    def __init__(self, line, column, expression):
+        super().__init__(line, column)
+        self.expression = expression
+
+class FieldNode(ASTNode):
+    def __init__(self, line, column, field_type, name, mutable):
+        super().__init__(line, column)
+        self.field_type = field_type
+        self.name = name
+        self.mutable = mutable
+
+class StructNode(ASTNode):
+    def __init__(self, line, column, name, fields, methods):
+        super().__init__(line, column)
+        self.name = name
+        self.fields = fields
+        self.methods = methods
+
+class CallNode(ExprNode):
+    def __init__(self, line, column, callee, arguments):
+        super().__init__(line, column)
+        self.callee = callee
+        self.arguments = arguments
+
+class MemberAccessNode(ExprNode):
+    def __init__(self, line, column, object_expression, name):
+        super().__init__(line, column)
+        self.object_expression = object_expression
+        self.name = name
+
+class ObjectCreationNode(ExprNode):
+    def __init__(self, line, column, type_name, arguments):
+        super().__init__(line, column)
+        self.type_name = type_name
+        self.arguments = arguments
+
+class FieldAssignmentNode(StmtNode):
+    def __init__(self, line, column, target, expression):
+        super().__init__(line, column)
+        self.target = target
+        self.expression = expression
+
+class PrintNode(StmtNode):
+    def __init__(self, line, column, expression):
+        super().__init__(line, column)
+        self.expression = expression
+
+class ReadNode(ExprNode):
+    def __init__(self, line, column):
+        super().__init__(line, column)
+
+class StringNode(ExprNode):
+    def __init__(self, line, column, value):
+        super().__init__(line, column)
+        self.value = value
+
+class ExpressionStatementNode(StmtNode):
+    def __init__(self, line, column, expression):
+        super().__init__(line, column)
+        self.expression = expression
+
+class UnaryExprNode(ExprNode):
+    def __init__(self, line, column, operator, operand):
+        super().__init__(line, column)
+        self.operator = operator
+        self.operand = operand
 
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
         self.index = 0
+        self.condition_depth = 0
 
     def peek(self):
         return self.tokens[self.index]
@@ -533,100 +672,211 @@ class Parser:
         statements = []
 
         while self.peek().kind != TOKEN_EOF:
-            statements.append(self.parse_statement())
+            if self.peek().kind == TOKEN_ACTION:
+                statements.append(self.parse_function())
+            elif self.peek().kind == TOKEN_SHAPE:
+                statements.append(self.parse_struct())
+            else:
+                statements.append(self.parse_statement())
 
         self.eat(TOKEN_EOF)
-
         return ProgramNode(statements)
 
-    def parse_statement(self):
+    def parse_type(self):
         token = self.peek()
 
         if token.kind in (
-            TOKEN_NUM32,
-            TOKEN_NUM64,
-            TOKEN_BOOL,
+                TOKEN_NUM32,
+                TOKEN_NUM64,
+                TOKEN_BOOL,
+                TOKEN_IDENTIFIER,
         ):
-            return self.parse_declaration()
-
-        if token.kind == TOKEN_IDENTIFIER:
-            return self.parse_assignment()
-
-        if token.kind == TOKEN_IF:
-            return self.parse_if_statement()
+            self.eat(token.kind)
+            return token.text
 
         raise CompilationError(
             token.line,
             token.column,
-            f"unexpected token {token.text!r}",
+            "expected type",
         )
 
+    def parse_function(self):
+        start = self.eat(TOKEN_ACTION)
+        name = self.eat(TOKEN_IDENTIFIER)
+        self.eat(TOKEN_LPAREN)
+        parameters = []
+
+        if self.peek().kind != TOKEN_RPAREN:
+            while True:
+                token = self.peek()
+                param_type = self.parse_type()
+                param_name = self.eat(TOKEN_IDENTIFIER)
+                parameters.append(ParameterNode(token.line, token.column, param_type, param_name.text))
+                if self.peek().kind != TOKEN_COMMA:
+                    break
+                self.eat(TOKEN_COMMA)
+
+        self.eat(TOKEN_RPAREN)
+        self.eat(TOKEN_ARROW)
+        result_type = self.parse_type()
+        self.eat(TOKEN_LBRACE)
+        body = []
+
+        while self.peek().kind != TOKEN_RBRACE:
+            if self.peek().kind == TOKEN_EOF:
+                token = self.peek()
+                raise CompilationError(token.line, token.column, "expected '}'")
+            body.append(self.parse_statement())
+
+        if not body:
+            token = self.peek()
+            raise CompilationError(token.line, token.column, "function body must contain at least one statement")
+
+        self.eat(TOKEN_RBRACE)
+        return FunctionNode(start.line, start.column, name.text, parameters, result_type, body)
+
+    def parse_struct(self):
+        start = self.eat(TOKEN_SHAPE)
+        name = self.eat(TOKEN_IDENTIFIER)
+        self.eat(TOKEN_LBRACE)
+        fields = []
+        methods = []
+
+        while self.peek().kind != TOKEN_RBRACE:
+            if self.peek().kind == TOKEN_EOF:
+                token = self.peek()
+                raise CompilationError(token.line, token.column, "expected '}'")
+            if self.peek().kind == TOKEN_ACTION:
+                methods.append(self.parse_function())
+            else:
+                fields.append(self.parse_field())
+
+        if not fields and not methods:
+            token = self.peek()
+            raise CompilationError(token.line, token.column, "structure must contain at least one member")
+
+        self.eat(TOKEN_RBRACE)
+        return StructNode(start.line, start.column, name.text, fields, methods)
+
+    def parse_field(self):
+        token = self.peek()
+        field_type = self.parse_type()
+        mutable = False
+        if self.peek().kind == TOKEN_MUT:
+            self.eat(TOKEN_MUT)
+            mutable = True
+        name = self.eat(TOKEN_IDENTIFIER)
+        self.eat(TOKEN_SEMICOLON)
+        return FieldNode(token.line, token.column, field_type, name.text, mutable)
+
+    def parse_return(self):
+        token = self.eat(TOKEN_GIVE)
+        expression = self.parse_expression()
+        self.eat(TOKEN_SEMICOLON)
+        return ReturnNode(token.line, token.column, expression)
+
+    def parse_statement(self):
+        token = self.peek()
+        if token.kind in (TOKEN_NUM32, TOKEN_NUM64, TOKEN_BOOL):
+            return self.parse_declaration()
+        if token.kind == TOKEN_GIVE:
+            return self.parse_return()
+        if token.kind == TOKEN_IF:
+            return self.parse_if_statement()
+        if token.kind == TOKEN_PRINT:
+            return self.parse_print()
+        if token.kind == TOKEN_IDENTIFIER:
+            if self.index + 1 < len(self.tokens) and self.tokens[self.index + 1].kind in (TOKEN_IDENTIFIER, TOKEN_MUT):
+                return self.parse_declaration()
+            return self.parse_assignment_or_call()
+        raise CompilationError(token.line, token.column, f"unexpected token {token.text!r}")
+
     def parse_declaration(self):
-        type_token = self.peek()
-
-        if type_token.kind == TOKEN_NUM32:
-            self.eat(TOKEN_NUM32)
-            var_type = "num32"
-
-        elif type_token.kind == TOKEN_NUM64:
-            self.eat(TOKEN_NUM64)
-            var_type = "num64"
-
-        elif type_token.kind == TOKEN_BOOL:
-            self.eat(TOKEN_BOOL)
-            var_type = "bool"
-
-        else:
-            raise CompilationError(
-                type_token.line,
-                type_token.column,
-                "expected type",
-            )
-
+        start = self.peek()
+        var_type = self.parse_type()
         mutable = False
 
         if self.peek().kind == TOKEN_MUT:
             self.eat(TOKEN_MUT)
             mutable = True
 
-        name_token = self.eat(TOKEN_IDENTIFIER)
-
+        name = self.eat(TOKEN_IDENTIFIER)
         self.eat(TOKEN_LBRACE)
 
-        expression = self.parse_expression()
+        if var_type in ("num32", "num64", "bool"):
+            expression = self.parse_expression()
+        else:
+            arguments = []
+            if self.peek().kind != TOKEN_RBRACE:
+                arguments.append(self.parse_expression())
+                while self.peek().kind == TOKEN_COMMA:
+                    self.eat(TOKEN_COMMA)
+                    arguments.append(self.parse_expression())
+            expression = ObjectCreationNode(start.line, start.column, var_type, arguments)
 
         self.eat(TOKEN_RBRACE)
         self.eat(TOKEN_SEMICOLON)
+        return DeclarationNode(start.line, start.column, var_type, name.text, mutable, expression)
 
-        return DeclarationNode(
-            type_token.line,
-            type_token.column,
-            var_type,
-            name_token.text,
-            mutable,
-            expression,
-        )
+    def parse_arguments(self):
+        arguments = []
+        if self.peek().kind != TOKEN_RPAREN:
+            arguments.append(self.parse_expression())
+            while self.peek().kind == TOKEN_COMMA:
+                self.eat(TOKEN_COMMA)
+                arguments.append(self.parse_expression())
+        return arguments
 
-    def parse_assignment(self):
-        name_token = self.eat(TOKEN_IDENTIFIER)
+    def parse_postfix(self, expression):
+        while self.peek().kind in (TOKEN_DOT, TOKEN_LPAREN):
+            if self.peek().kind == TOKEN_DOT:
+                self.eat(TOKEN_DOT)
+                member = self.eat(TOKEN_IDENTIFIER)
+                expression = MemberAccessNode(member.line, member.column, expression, member.text)
+            else:
+                opening = self.eat(TOKEN_LPAREN)
+                arguments = self.parse_arguments()
+                self.eat(TOKEN_RPAREN)
+                expression = CallNode(opening.line, opening.column, expression, arguments)
+        return expression
 
-        self.eat(TOKEN_ASSIGN)
-
-        expression = self.parse_expression()
-
+    def parse_assignment_or_call(self):
+        name = self.eat(TOKEN_IDENTIFIER)
+        expression = self.parse_postfix(IdentifierNode(name.line, name.column, name.text))
+        if self.peek().kind == TOKEN_ASSIGN:
+            self.eat(TOKEN_ASSIGN)
+            if not isinstance(expression, (IdentifierNode, MemberAccessNode)):
+                raise CompilationError(name.line, name.column, "invalid assignment target")
+            target_value = self.parse_expression()
+            self.eat(TOKEN_SEMICOLON)
+            if isinstance(expression, IdentifierNode):
+                return AssignmentNode(name.line, name.column, name.text, target_value)
+            return FieldAssignmentNode(name.line, name.column, expression, target_value)
         self.eat(TOKEN_SEMICOLON)
+        if not isinstance(expression, CallNode):
+            raise CompilationError(name.line, name.column, "expected assignment or call")
+        return ExpressionStatementNode(name.line, name.column, expression)
 
-        return AssignmentNode(
-            name_token.line,
-            name_token.column,
-            name_token.text,
-            expression,
-        )
+    def parse_print(self):
+        token = self.eat(TOKEN_PRINT)
+        self.eat(TOKEN_LPAREN)
+        if self.peek().kind == TOKEN_STRING:
+            value = self.eat(TOKEN_STRING)
+            expression = StringNode(value.line, value.column, value.text)
+        else:
+            expression = self.parse_expression()
+        self.eat(TOKEN_RPAREN)
+        self.eat(TOKEN_SEMICOLON)
+        return PrintNode(token.line, token.column, expression)
 
     def parse_if_statement(self):
         if_token = self.eat(TOKEN_IF)
 
-        condition = self.parse_expression()
+        self.condition_depth += 1
+        try:
+            condition = self.parse_expression()
+        finally:
+            self.condition_depth -= 1
 
         self.eat(TOKEN_LBRACE)
 
@@ -694,12 +944,8 @@ class Parser:
             else_body,
         )
 
-    # expression = equality
-
     def parse_expression(self):
         return self.parse_equality()
-
-    # equality = additive { ("==" | "!=") additive }
 
     def parse_equality(self):
         left = self.parse_additive()
@@ -727,8 +973,6 @@ class Parser:
 
         return left
 
-    # additive = multiplicative { ("+" | "-") multiplicative }
-
     def parse_additive(self):
         left = self.parse_multiplicative()
 
@@ -755,92 +999,54 @@ class Parser:
 
         return left
 
-    # multiplicative = primary { ("*" | "/") primary }
-
     def parse_multiplicative(self):
-        left = self.parse_primary()
-
-        while self.peek().kind in (
-            TOKEN_STAR,
-            TOKEN_SLASH,
-        ):
-            operator_token = self.peek()
-
-            if operator_token.kind == TOKEN_STAR:
-                self.eat(TOKEN_STAR)
-            else:
-                self.eat(TOKEN_SLASH)
-
-            right = self.parse_primary()
-
-            left = BinaryExprNode(
-                operator_token.line,
-                operator_token.column,
-                left,
-                operator_token.text,
-                right,
-            )
-
+        left = self.parse_unary()
+        while self.peek().kind in (TOKEN_STAR, TOKEN_SLASH):
+            operator = self.peek()
+            self.eat(operator.kind)
+            right = self.parse_unary()
+            left = BinaryExprNode(operator.line, operator.column, left, operator.text, right)
         return left
+
+    def parse_unary(self):
+        if self.peek().kind == TOKEN_MINUS:
+            token = self.eat(TOKEN_MINUS)
+            return UnaryExprNode(token.line, token.column, "-", self.parse_unary())
+        return self.parse_postfix(self.parse_primary())
 
     def parse_primary(self):
         token = self.peek()
-
         if token.kind == TOKEN_INTEGER:
             self.eat(TOKEN_INTEGER)
-
-            return IntegerNode(
-                token.line,
-                token.column,
-                int(token.text),
-            )
-
-        if token.kind == TOKEN_TRUE:
-            self.eat(TOKEN_TRUE)
-
-            return BooleanNode(
-                token.line,
-                token.column,
-                True,
-            )
-
-        if token.kind == TOKEN_FALSE:
-            self.eat(TOKEN_FALSE)
-
-            return BooleanNode(
-                token.line,
-                token.column,
-                False,
-            )
-
+            return IntegerNode(token.line, token.column, int(token.text))
+        if token.kind in (TOKEN_TRUE, TOKEN_FALSE):
+            self.eat(token.kind)
+            return BooleanNode(token.line, token.column, token.kind == TOKEN_TRUE)
+        if token.kind == TOKEN_READ:
+            self.eat(TOKEN_READ)
+            self.eat(TOKEN_LPAREN)
+            self.eat(TOKEN_RPAREN)
+            return ReadNode(token.line, token.column)
         if token.kind == TOKEN_IDENTIFIER:
             self.eat(TOKEN_IDENTIFIER)
-
-            return IdentifierNode(
-                token.line,
-                token.column,
-                token.text,
-            )
-
+            if self.peek().kind == TOKEN_LBRACE and not self.condition_depth:
+                self.eat(TOKEN_LBRACE)
+                arguments = []
+                if self.peek().kind != TOKEN_RBRACE:
+                    arguments.append(self.parse_expression())
+                    while self.peek().kind == TOKEN_COMMA:
+                        self.eat(TOKEN_COMMA)
+                        arguments.append(self.parse_expression())
+                self.eat(TOKEN_RBRACE)
+                return ObjectCreationNode(token.line, token.column, token.text, arguments)
+            return IdentifierNode(token.line, token.column, token.text)
         if token.kind == TOKEN_LPAREN:
             self.eat(TOKEN_LPAREN)
-
             expression = self.parse_expression()
-
             self.eat(TOKEN_RPAREN)
-
             return expression
+        raise CompilationError(token.line, token.column, f"expected expression, got {token.text!r}")
 
-        raise CompilationError(
-            token.line,
-            token.column,
-            f"expected expression, got {token.text!r}",
-        )
-
-
-# ============================================================
-# AST DUMP
-# ============================================================
 
 def dump_ast(node, depth=0):
     indent = "  " * depth
@@ -850,6 +1056,68 @@ def dump_ast(node, depth=0):
 
         for statement in node.statements:
             dump_ast(statement, depth + 1)
+
+    elif isinstance(node, FunctionNode):
+        print(f"{indent}Function name={node.name} result_type={node.result_type} line={node.line} column={node.column}")
+        for param in node.parameters:
+            dump_ast(param, depth + 1)
+        for statement in node.body:
+            dump_ast(statement, depth + 1)
+
+    elif isinstance(node, ParameterNode):
+        print(f"{indent}Parameter type={node.param_type} name={node.name} line={node.line} column={node.column}")
+
+    elif isinstance(node, StructNode):
+        print(f"{indent}Struct name={node.name} line={node.line} column={node.column}")
+        for field in node.fields:
+            dump_ast(field, depth + 1)
+        for method in node.methods:
+            dump_ast(method, depth + 1)
+
+    elif isinstance(node, FieldNode):
+        print(f"{indent}Field type={node.field_type} name={node.name} mutable={str(node.mutable).lower()} line={node.line} column={node.column}")
+
+    elif isinstance(node, ReturnNode):
+        print(f"{indent}Return line={node.line} column={node.column}")
+        dump_ast(node.expression, depth + 1)
+
+    elif isinstance(node, CallNode):
+        print(f"{indent}Call line={node.line} column={node.column} arguments={len(node.arguments)}")
+        dump_ast(node.callee, depth + 1)
+        for argument in node.arguments:
+            dump_ast(argument, depth + 1)
+
+    elif isinstance(node, MemberAccessNode):
+        print(f"{indent}MemberAccess name={node.name} line={node.line} column={node.column}")
+        dump_ast(node.object_expression, depth + 1)
+
+    elif isinstance(node, ObjectCreationNode):
+        print(f"{indent}ObjectCreation type={node.type_name} line={node.line} column={node.column}")
+        for argument in node.arguments:
+            dump_ast(argument, depth + 1)
+
+    elif isinstance(node, FieldAssignmentNode):
+        print(f"{indent}FieldAssignment line={node.line} column={node.column}")
+        dump_ast(node.target, depth + 1)
+        dump_ast(node.expression, depth + 1)
+
+    elif isinstance(node, PrintNode):
+        print(f"{indent}Print line={node.line} column={node.column}")
+        dump_ast(node.expression, depth + 1)
+
+    elif isinstance(node, ReadNode):
+        print(f"{indent}Read line={node.line} column={node.column}")
+
+    elif isinstance(node, StringNode):
+        print(f"{indent}String value={node.value!r} line={node.line} column={node.column}")
+
+    elif isinstance(node, ExpressionStatementNode):
+        print(f"{indent}ExpressionStatement line={node.line} column={node.column}")
+        dump_ast(node.expression, depth + 1)
+
+    elif isinstance(node, UnaryExprNode):
+        print(f"{indent}UnaryExpr operator={node.operator} line={node.line} column={node.column}")
+        dump_ast(node.operand, depth + 1)
 
     elif isinstance(node, DeclarationNode):
         print(
@@ -952,11 +1220,6 @@ def dump_ast(node, depth=0):
             f"unknown AST node: {type(node).__name__}"
         )
 
-
-# ============================================================
-# COMPILER
-# ============================================================
-
 def compile_source(source):
     lexer = Lexer(source)
     tokens = lexer.tokenize()
@@ -965,49 +1228,42 @@ def compile_source(source):
 
     return parser.parse_program()
 
-
-# ============================================================
-# CLI
-# ============================================================
-
 def main():
-    if len(sys.argv) != 3 or sys.argv[1] != "--ast":
-        print(
-            "usage: python3 compiler.py --ast <input-file>",
-            file=sys.stderr,
-        )
+    if len(sys.argv) != 3:
+        print("usage: python3 compiler.py --ast <input-file> | <input-file> <output.ll>", file=sys.stderr)
         return 1
 
-    filename = sys.argv[2]
-
+    ast_mode = sys.argv[1] == "--ast"
+    filename = sys.argv[2] if ast_mode else sys.argv[1]
+    output = None if ast_mode else sys.argv[2]
     try:
-        with open(
-            filename,
-            "r",
-            encoding="utf-8",
-        ) as file:
-            source = file.read()
-
-        ast = compile_source(source)
-
-        dump_ast(ast)
-
+        with open(filename, "r", encoding="utf-8") as source_file:
+            ast = compile_source(source_file.read())
+        if ast_mode:
+            dump_ast(ast)
+            return 0
+        sys.modules["compiler"] = sys.modules["__main__"]
+        from src.semantic import SemanticAnalyzer
+        from src.codegen import CodeGenerator
+        analyzer = SemanticAnalyzer()
+        analyzer.analyze(ast)
+        result = CodeGenerator(analyzer).generate(ast)
+        with open(output, "w", encoding="utf-8") as target:
+            target.write(result)
         return 0
-
-    except FileNotFoundError:
-        print(
-            f"compilation error: file not found: {filename}",
-            file=sys.stderr,
-        )
-        return 1
-
     except CompilationError as error:
-        print(
-            "compilation error: "
-            f"line {error.line}:{error.column}: "
-            f"{error.message}",
-            file=sys.stderr,
-        )
+        if output is not None:
+            import os
+            if os.path.exists(output):
+                os.remove(output)
+        print(f"compilation error: line {error.line}:{error.column}: {error.message}", file=sys.stderr)
+        return 1
+    except (OSError, ValueError, KeyError, TypeError, OverflowError) as error:
+        if output is not None:
+            import os
+            if os.path.exists(output):
+                os.remove(output)
+        print(f"compilation error: line 1:1: {error}", file=sys.stderr)
         return 1
 
 
