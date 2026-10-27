@@ -1,0 +1,1 @@
+num32 mut a {2}; a := a * 7; print(a);

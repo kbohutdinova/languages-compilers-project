@@ -1,0 +1,1 @@
+shape Point { num32 x; num32 y; action sum() -> num32 { give x+y; } } Point p {3, 4}; print(p.sum());

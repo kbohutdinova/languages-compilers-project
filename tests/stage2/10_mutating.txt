@@ -1,0 +1,1 @@
+shape Counter { num32 mut x; action inc() -> num32 { x := x + 1; give x; } } Counter mut c {4}; print(c.inc()); print(c.x);
