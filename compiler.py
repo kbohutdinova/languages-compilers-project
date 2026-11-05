@@ -19,6 +19,10 @@ TOKEN_TRUE = "TRUE"
 TOKEN_FALSE = "FALSE"
 TOKEN_IF = "IF"
 TOKEN_ELSE = "ELSE"
+TOKEN_WHILE = "WHILE"
+TOKEN_FOR = "FOR"
+TOKEN_IN = "IN"
+TOKEN_RANGE = "RANGE"
 
 TOKEN_ASSIGN = "ASSIGN"
 TOKEN_EQUAL = "EQUAL"
@@ -54,6 +58,9 @@ KEYWORDS = {
     "false": TOKEN_FALSE,
     "if": TOKEN_IF,
     "else": TOKEN_ELSE,
+    "while": TOKEN_WHILE,
+    "for": TOKEN_FOR,
+    "in": TOKEN_IN,
     "action": TOKEN_ACTION,
     "shape": TOKEN_SHAPE,
     "give": TOKEN_GIVE,
@@ -318,6 +325,9 @@ class Lexer:
 
         if char == ".":
             self.advance()
+            if self.current() == ord("."):
+                self.advance()
+                return Token(TOKEN_RANGE, "..", start_line, start_column)
             return Token(
                 TOKEN_DOT,
                 ".",
@@ -519,6 +529,22 @@ class IfNode(StmtNode):
         self.condition = condition
         self.if_body = if_body
         self.else_body = else_body
+
+class WhileNode(StmtNode):
+    def __init__(self, line, column, condition, body):
+        super().__init__(line, column)
+        self.condition = condition
+        self.body = body
+
+
+class ForNode(StmtNode):
+    def __init__(self, line, column, name, start, end, body):
+        super().__init__(line, column)
+        self.name = name
+        self.start = start
+        self.end = end
+        self.body = body
+
 
 class IntegerNode(ExprNode):
     def __init__(
@@ -783,6 +809,10 @@ class Parser:
             return self.parse_return()
         if token.kind == TOKEN_IF:
             return self.parse_if_statement()
+        if token.kind == TOKEN_WHILE:
+            return self.parse_while()
+        if token.kind == TOKEN_FOR:
+            return self.parse_for()
         if token.kind == TOKEN_PRINT:
             return self.parse_print()
         if token.kind == TOKEN_IDENTIFIER:
@@ -868,6 +898,42 @@ class Parser:
         self.eat(TOKEN_RPAREN)
         self.eat(TOKEN_SEMICOLON)
         return PrintNode(token.line, token.column, expression)
+
+    def parse_loop_body(self):
+        self.eat(TOKEN_LBRACE)
+        body = []
+        while self.peek().kind != TOKEN_RBRACE:
+            if self.peek().kind == TOKEN_EOF:
+                token = self.peek()
+                raise CompilationError(token.line, token.column, "expected ' } '".replace(" ", ""))
+            body.append(self.parse_statement())
+        if not body:
+            token = self.peek()
+            raise CompilationError(token.line, token.column, "loop body must contain at least one statement")
+        self.eat(TOKEN_RBRACE)
+        return body
+
+    def parse_while(self):
+        start = self.eat(TOKEN_WHILE)
+        self.condition_depth += 1
+        try:
+            condition = self.parse_expression()
+        finally:
+            self.condition_depth -= 1
+        return WhileNode(start.line, start.column, condition, self.parse_loop_body())
+
+    def parse_for(self):
+        start = self.eat(TOKEN_FOR)
+        name = self.eat(TOKEN_IDENTIFIER)
+        self.eat(TOKEN_IN)
+        self.condition_depth += 1
+        try:
+            lower = self.parse_expression()
+            self.eat(TOKEN_RANGE)
+            upper = self.parse_expression()
+        finally:
+            self.condition_depth -= 1
+        return ForNode(start.line, start.column, name.text, lower, upper, self.parse_loop_body())
 
     def parse_if_statement(self):
         if_token = self.eat(TOKEN_IF)
@@ -1177,6 +1243,19 @@ def dump_ast(node, depth=0):
             for statement in node.else_body:
                 dump_ast(statement, depth + 2)
 
+    elif isinstance(node, WhileNode):
+        print(f"{indent}While line={node.line} column={node.column}")
+        dump_ast(node.condition, depth + 1)
+        for stmt in node.body:
+            dump_ast(stmt, depth + 1)
+
+    elif isinstance(node, ForNode):
+        print(f"{indent}For name={node.name} line={node.line} column={node.column}")
+        dump_ast(node.start, depth + 1)
+        dump_ast(node.end, depth + 1)
+        for stmt in node.body:
+            dump_ast(stmt, depth + 1)
+
     elif isinstance(node, IntegerNode):
         print(
             f"{indent}Integer "
@@ -1229,20 +1308,27 @@ def compile_source(source):
     return parser.parse_program()
 
 def main():
-    if len(sys.argv) != 3:
-        print("usage: python3 compiler.py --ast <input-file> | <input-file> <output.ll>", file=sys.stderr)
+    args = [arg for arg in sys.argv[1:] if arg not in ("--optimize", "--ast")]
+    optimize_mode = "--optimize" in sys.argv[1:]
+    ast_mode = "--ast" in sys.argv[1:]
+    if len(args) != (1 if ast_mode else 2):
+        print("usage: python3 compiler.py [--optimize] [--ast] input.txt [output.ll]", file=sys.stderr)
         return 1
-
-    ast_mode = sys.argv[1] == "--ast"
-    filename = sys.argv[2] if ast_mode else sys.argv[1]
-    output = None if ast_mode else sys.argv[2]
+    filename = args[0]
+    output = None if ast_mode else args[1]
     try:
         with open(filename, "r", encoding="utf-8") as source_file:
             ast = compile_source(source_file.read())
+        sys.modules["compiler"] = sys.modules["__main__"]
+        if optimize_mode:
+            from src.semantic import SemanticAnalyzer
+            checked = SemanticAnalyzer()
+            checked.analyze(ast)
+            from src.optimizer import optimize
+            optimize(ast)
         if ast_mode:
             dump_ast(ast)
             return 0
-        sys.modules["compiler"] = sys.modules["__main__"]
         from src.semantic import SemanticAnalyzer
         from src.codegen import CodeGenerator
         analyzer = SemanticAnalyzer()

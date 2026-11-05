@@ -1,7 +1,9 @@
 program = { top_level_item } ;
 top_level_item = structure_declaration | function_declaration | statement ;
 statement = declaration | assignment | if_statement | return_statement
-          | print_statement | expression_statement ;
+          | print_statement | expression_statement | while_statement | for_statement ;
+while_statement = "while" expression "{" statement+ "}" ;
+for_statement = "for" identifier "in" expression ".." expression "{" statement+ "}" ;
 declaration = primitive_type [ "mut" ] identifier "{" expression "}" ";"
             | identifier [ "mut" ] identifier "{" [ arguments ] "}" ";" ;
 primitive_type = "num32" | "num64" | "bool" ;

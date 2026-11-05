@@ -1,0 +1,24 @@
+Guess the number from 1 to 10!
+You have 5 attempts.
+Enter your guess:
+Too low!
+Attempts left:
+4
+Enter your guess:
+Too low!
+Attempts left:
+3
+Enter your guess:
+Too low!
+Attempts left:
+2
+Enter your guess:
+Too low!
+Attempts left:
+1
+Enter your guess:
+Too low!
+Attempts left:
+0
+Game over! The number was:
+7

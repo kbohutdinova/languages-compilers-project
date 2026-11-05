@@ -1,0 +1,92 @@
+# AI Usage Statement — Stage 3
+
+## 1. AI tools used
+
+I used ChatGPT (GPT-6) to help me with Stage 3 of my KameLang compiler project.
+I used AI to understand the assignment requirements, implement new language features, develop the optimizer, write tests, debug errors, and create an interactive program.
+
+## 2. Prompts and conversations
+
+I used prompts such as:
+- "Help me implement Stage 3 based on my Stage 2 compiler."
+- "Help me add while and for loops to KameLang."
+- "Help me implement unused variable removal, unused function removal, and function inlining."
+- "Help me create an interactive Guess the Number game in KameLang."
+- "Help me add two test sessions and integrate them into run_stage3_tests.py."
+- "Help me fix errors when running the tests."
+
+Full ChatGPT conversation:
+
+https://chatgpt.com/share/6aecc3b5-280c-83ed-a75b-f121bd82ad3b
+
+## 3. Task 1: Language feature — Loops
+
+**What I used from AI:**
+AI helped generate the implementation of while and for loops, including changes to parsing, semantic checking, and LLVM IR generation.
+It also helped create valid and invalid test cases.
+
+**What I changed:**
+I integrated the changes into my project, installed the required dependencies, and tested the implementation.
+I also used the new loops in my interactive game.
+
+**What I understood:**
+A while loop repeats while its condition is true. A for loop goes through an integer range.
+In LLVM IR, loops use basic blocks and branch instructions. A back edge returns execution to the loop condition or iteration step.
+
+## 4. Task 2: Optimizer
+
+**What I used from AI:**
+
+AI helped implement three optimization transformations:
+
+- Removal of unused variables
+- Removal of unused functions
+- Function inlining
+AI also helped prepare tests for these transformations.
+
+**What I changed:**
+
+I integrated the optimizer into my project and ran the automated tests to check that optimization did not change the program output.
+
+**What I understood:**
+
+The optimizer works on the checked AST before LLVM IR generation.
+Unused code can be removed when doing so does not change program behavior.
+Inlining replaces a function call with its body. This can remove the need for a separate function call, but the optimizer must preserve the original behavior.
+
+## 5. Task 3: Interactive program
+
+**What I used from AI:**
+
+AI helped me write the first interactive program, Weighted Sum Calculator.
+Later, I decided to replace it with Guess the Number because I wanted a more interactive program for the defence.
+AI helped generate the game code using KameLang syntax.
+
+**What I changed:**
+
+I chose Guess the Number as my final program.
+I created the game file, compiled it into a native executable, and tested it with different inputs.
+I created two test sessions: one where the player wins and another where the player loses.
+I also updated the automated test script and fixed formatting problems in the expected output files.
+
+**What I understood:**
+
+The game uses a while loop to control the attempts and for loops to check the input and compare numbers.
+The GuessingGame structure stores the secret number. Its evaluate method checks the player's guess.
+The remaining function calculates how many attempts are left.
+The program uses read and print to communicate with the player.
+
+## 6. Testing and debugging
+
+AI helped me understand the missing llvmlite dependency and the need to install LLVM.
+I installed the dependencies and used llc and clang to compile the program into a native executable.
+I also fixed newline differences in the expected output files.
+The final automated test run showed 35 passing tests and no failures.
+
+## 7. Reflection
+
+AI helped me understand how to extend my compiler and test the new features.
+I learned how loops are represented in LLVM IR and how optimization changes the AST before code generation.
+I also learned how to compile and run an interactive program written in my own language.
+I checked the results by running the tests and comparing the actual output with the expected output.
+AI generated parts of the code, but I needed to integrate, test, and debug the project myself.

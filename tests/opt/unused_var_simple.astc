@@ -1,0 +1,9 @@
+Program
+  Declaration line=2 column=1
+    type=num32
+    name=shown
+    mutable=false
+    value
+      Integer value=3 line=2 column=14
+  Print line=3 column=1
+    Identifier name=shown line=3 column=7

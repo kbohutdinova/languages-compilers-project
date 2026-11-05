@@ -1,0 +1,9 @@
+num32 mut counter {0};
+for i in 0 .. 3 {
+    num32 mut j {0};
+    while j != 2 {
+        counter := counter + 1;
+        j := j + 1;
+    }
+}
+print(counter);

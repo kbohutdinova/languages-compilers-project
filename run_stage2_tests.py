@@ -16,7 +16,7 @@ def run():
         with tempfile.TemporaryDirectory() as directory:
             ir_file = Path(directory) / "program.ll"
             executable = Path(directory) / "program"
-            result = subprocess.run([sys.executable, str(ROOT / "compiler.py"), str(source), str(ir_file)], capture_output=True, text=True, cwd=ROOT)
+            result = subprocess.run([sys.executable, str(ROOT / "compiler.py"), *(["--optimize"] if "--optimize" in sys.argv else []), str(source), str(ir_file)], capture_output=True, text=True, cwd=ROOT)
             if invalid.exists():
                 wanted = invalid.read_text()
                 good = (

@@ -1,5 +1,5 @@
 from llvmlite import ir
-from compiler import (CompilationError, DeclarationNode, AssignmentNode, IfNode, IntegerNode, BooleanNode, IdentifierNode, BinaryExprNode, UnaryExprNode, FunctionNode, StructNode, ReturnNode, FieldAssignmentNode, MemberAccessNode, CallNode, ObjectCreationNode, PrintNode, ReadNode, StringNode, ExpressionStatementNode)
+from compiler import (CompilationError, DeclarationNode, AssignmentNode, IfNode, WhileNode, ForNode, IntegerNode, BooleanNode, IdentifierNode, BinaryExprNode, UnaryExprNode, FunctionNode, StructNode, ReturnNode, FieldAssignmentNode, MemberAccessNode, CallNode, ObjectCreationNode, PrintNode, ReadNode, StringNode, ExpressionStatementNode)
 
 
 class CodeGenerator:
@@ -275,6 +275,56 @@ class CodeGenerator:
         elif isinstance(node, ReturnNode):
             value, _ = self.expr(node.expression, self.current_return)
             self.builder.ret(self.as_type(value, self.type(self.current_return)))
+        elif isinstance(node, WhileNode):
+            function = self.builder.function
+            condition_block = function.append_basic_block("while.cond")
+            body_block = function.append_basic_block("while.body")
+            end_block = function.append_basic_block("while.end")
+            self.builder.branch(condition_block)
+            self.builder.position_at_end(condition_block)
+            condition, _ = self.expr(node.condition)
+            self.builder.cbranch(condition, body_block, end_block)
+            self.builder.position_at_end(body_block)
+            self.enter()
+            for child in node.body:
+                self.statement(child)
+            self.leave()
+            if not self.builder.block.is_terminated:
+                self.builder.branch(condition_block)
+            self.builder.position_at_end(end_block)
+        elif isinstance(node, ForNode):
+            # Both bounds are evaluated exactly once, before the loop.
+            start, _ = self.expr(node.start, "num32")
+            end, _ = self.expr(node.end, "num32")
+            index_ptr = self.alloca(self.i32, node.name)
+            end_ptr = self.alloca(self.i32, "for.end.value")
+            self.builder.store(start, index_ptr)
+            self.builder.store(end, end_ptr)
+            function = self.builder.function
+            cond_block = function.append_basic_block("for.cond")
+            body_block = function.append_basic_block("for.body")
+            step_block = function.append_basic_block("for.step")
+            end_block = function.append_basic_block("for.end")
+            self.builder.branch(cond_block)
+            self.builder.position_at_end(cond_block)
+            value = self.builder.load(index_ptr)
+            limit = self.builder.load(end_ptr)
+            condition = self.builder.icmp_signed("<", value, limit)
+            self.builder.cbranch(condition, body_block, end_block)
+            self.builder.position_at_end(body_block)
+            self.enter()
+            self.bind(node.name, index_ptr, "num32")
+            for child in node.body:
+                self.statement(child)
+            self.leave()
+            if not self.builder.block.is_terminated:
+                self.builder.branch(step_block)
+            self.builder.position_at_end(step_block)
+            current = self.builder.load(index_ptr)
+            next_value = self.checked_operation("+", current, ir.Constant(self.i32, 1))
+            self.builder.store(next_value, index_ptr)
+            self.builder.branch(cond_block)
+            self.builder.position_at_end(end_block)
         elif isinstance(node, IfNode):
             condition, _ = self.expr(node.condition)
             function = self.builder.function

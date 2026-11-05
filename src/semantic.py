@@ -3,7 +3,7 @@ from compiler import (
     ProgramNode,
     DeclarationNode,
     AssignmentNode,
-    IfNode,
+    IfNode, WhileNode, ForNode,
     IntegerNode,
     BooleanNode,
     IdentifierNode,
@@ -152,6 +152,35 @@ class SemanticAnalyzer:
                         self.analyze_statement(statement)
                 finally:
                     self.leave_scope()
+            return
+
+        if isinstance(node, WhileNode):
+            kind, _ = self.expression_type(node.condition)
+            if kind != "bool":
+                self.error(node.condition, "while condition must be bool")
+            self.enter_scope()
+            try:
+                for child in node.body:
+                    self.analyze_statement(child)
+            finally:
+                self.leave_scope()
+            return
+
+        if isinstance(node, ForNode):
+            start_kind, start_constant = self.expression_type(node.start)
+            end_kind, end_constant = self.expression_type(node.end)
+            for expression, kind, constant in ((node.start, start_kind, start_constant), (node.end, end_kind, end_constant)):
+                if kind not in ("num32", "integer_literal"):
+                    self.error(expression, "for bounds must be num32")
+                self.check_assignment_type(expression, "num32", kind, constant)
+            self.enter_scope()
+            try:
+                if not self.current_scope.declare(Symbol(node.name, "num32", False)):
+                    self.error(node, f"duplicate loop variable '{node.name}'")
+                for child in node.body:
+                    self.analyze_statement(child)
+            finally:
+                self.leave_scope()
             return
 
         if isinstance(node, ReturnNode):
@@ -404,9 +433,11 @@ class SemanticAnalyzer:
                 yield from self.walk_statements(stmt.if_body)
                 if stmt.else_body:
                     yield from self.walk_statements(stmt.else_body)
+            elif isinstance(stmt, (WhileNode, ForNode)):
+                yield from self.walk_statements(stmt.body)
 
     def statement_expressions(self, stmt):
-        return [getattr(stmt, name) for name in ("expression", "condition") if hasattr(stmt, name)]
+        return [getattr(stmt, name) for name in ("expression", "condition", "start", "end") if hasattr(stmt, name)]
 
     def walk_calls(self, node):
         if isinstance(node, CallNode):

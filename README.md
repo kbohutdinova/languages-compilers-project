@@ -109,3 +109,62 @@ Some limitations remain:
 - Nested structure printing does not recursively display nested objects.
 - Function bodies referencing top-level variables are not fully supported.
 - Some advanced temporary-object access chains are not fully supported.
+
+
+## Stage 3: Guess the Number
+
+### Program description
+
+Guess the Number is an interactive game written in KameLang.
+
+The player tries to guess a secret number from 1 to 10.
+The secret number is fixed at 7.
+The player has five attempts to guess correctly.
+
+After each guess, the program prints whether the number is too low or too high.
+If the player guesses correctly, the game ends with a victory message.
+If all five attempts are used, the game ends and reveals the secret number.
+
+### Language features used
+
+- Structure: `GuessingGame`
+- Member function: `evaluate()`
+- Regular function: `remaining()`
+- Input and output: `read()` and `print()`
+- Loops: `while` and `for`
+- Conditional statements: `if` and `else`
+
+The `while` loop controls the number of attempts.
+
+The `for` loops validate the player's input and compare the guess with the secret number.
+
+### Compilation and execution
+
+```bash
+python3 compiler.py programs/guess_number.txt game.ll
+llc -filetype=obj game.ll -o game.o
+clang game.o -o game
+./game
+```
+
+### Test sessions
+
+Winning session:
+
+```bash
+./game < programs/guess_number.in
+```
+
+Losing session:
+
+```bash
+./game < programs/guess_number_second.in
+```
+
+### Automated tests
+
+```bash
+python3 run_stage3_tests.py
+```
+
+Both sessions are checked automatically against their expected output files.
