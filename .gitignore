@@ -1,2 +1,10 @@
+.venv/
 __pycache__/
 *.pyc
+*.ll
+*.o
+actual*.txt
+/game
+/program
+.idea/
+.DS_Store

@@ -1,0 +1,1 @@
+action a(num32 x) -> num32 { give x; } print(a());

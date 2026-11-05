@@ -1,0 +1,4 @@
+action double(num32 x) -> num32 {
+    give x + x;
+}
+print(double(6));

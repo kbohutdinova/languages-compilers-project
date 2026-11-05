@@ -1,0 +1,1 @@
+shape P { num32 x; } P p {1}; print(p.y);

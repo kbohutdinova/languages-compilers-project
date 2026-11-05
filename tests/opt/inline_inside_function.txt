@@ -1,0 +1,7 @@
+action addone(num32 n) -> num32 {
+    give n + 1;
+}
+action calculate(num32 n) -> num32 {
+    give addone(n);
+}
+print(calculate(5));

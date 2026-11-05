@@ -1,0 +1,25 @@
+Program
+  Function name=calculate result_type=num32 line=4 column=1
+    Parameter type=num32 name=n line=4 column=18
+    Declaration line=5 column=16
+      type=num32
+      name=kameinline1param0
+      mutable=false
+      value
+        Identifier name=n line=5 column=17
+    Declaration line=5 column=16
+      type=num32
+      name=kameinline1result
+      mutable=false
+      value
+        BinaryExpr operator=+ line=2 column=12
+          left
+            Identifier name=kameinline1param0 line=2 column=10
+          right
+            Integer value=1 line=2 column=14
+    Return line=5 column=5
+      Identifier name=kameinline1result line=5 column=16
+  Print line=7 column=1
+    Call line=7 column=16 arguments=1
+      Identifier name=calculate line=7 column=7
+      Integer value=5 line=7 column=17

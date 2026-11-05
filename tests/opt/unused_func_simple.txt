@@ -1,0 +1,4 @@
+action unused(num32 a) -> num32 {
+    give a;
+}
+print(7);

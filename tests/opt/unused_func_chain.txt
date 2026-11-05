@@ -1,0 +1,7 @@
+action hidden(num32 a) -> num32 {
+    give a;
+}
+action unused(num32 a) -> num32 {
+    give hidden(a);
+}
+print(9);

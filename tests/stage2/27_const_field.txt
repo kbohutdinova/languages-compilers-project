@@ -1,0 +1,1 @@
+shape P { num32 x; } P mut p {1}; p.x := 2;

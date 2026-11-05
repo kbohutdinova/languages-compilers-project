@@ -1,0 +1,74 @@
+
+shape GuessingGame {
+    num32 secret;
+
+    action evaluate(num32 guess) -> num32 {
+        if guess == secret {
+            give 0;
+        } else {
+            num32 mut low {0};
+
+            for candidate in 1 .. secret {
+                if guess == candidate {
+                    low := 1;
+                }
+            }
+
+            if low == 1 {
+                give -1;
+            } else {
+                give 1;
+            }
+        }
+    }
+}
+
+action remaining(num32 limit, num32 used) -> num32 {
+    give limit - used;
+}
+
+GuessingGame game {7};
+num32 mut attempts {0};
+num32 mut won {0};
+
+print("Guess the number from 1 to 10!");
+print("You have 5 attempts.");
+
+while attempts != 5 {
+    print("Enter your guess:");
+    num32 guess {read()};
+    num32 mut valid {0};
+
+    for candidate in 1 .. 11 {
+        if guess == candidate {
+            valid := 1;
+        }
+    }
+
+    if valid == 0 {
+        print("Please enter a number from 1 to 10.");
+    } else {
+        attempts := attempts + 1;
+        num32 result {game.evaluate(guess)};
+
+        if result == 0 {
+            won := 1;
+            attempts := 5;
+            print("Correct! You win!");
+        } else {
+            if result == -1 {
+                print("Too low!");
+            } else {
+                print("Too high!");
+            }
+
+            print("Attempts left:");
+            print(remaining(5, attempts));
+        }
+    }
+}
+
+if won == 0 {
+    print("Game over! The number was:");
+    print(7);
+}

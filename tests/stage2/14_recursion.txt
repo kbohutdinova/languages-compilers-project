@@ -1,0 +1,1 @@
+action fact(num32 n) -> num32 { if n == 0 { give 1; } else { give n * fact(n - 1); } } print(fact(5));

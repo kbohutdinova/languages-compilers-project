@@ -1,0 +1,19 @@
+Program
+  Declaration line=4 column=13
+    type=num32
+    name=kameinline1param0
+    mutable=false
+    value
+      Integer value=6 line=4 column=14
+  Declaration line=4 column=13
+    type=num32
+    name=kameinline1result
+    mutable=false
+    value
+      BinaryExpr operator=+ line=2 column=12
+        left
+          Identifier name=kameinline1param0 line=2 column=10
+        right
+          Identifier name=kameinline1param0 line=2 column=14
+  Print line=4 column=1
+    Identifier name=kameinline1result line=4 column=13

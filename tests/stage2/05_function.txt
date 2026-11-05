@@ -1,0 +1,1 @@
+action add(num32 a, num32 b) -> num32 { give a + b; } print(add(3, 8));

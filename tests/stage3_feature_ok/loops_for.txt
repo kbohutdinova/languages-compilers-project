@@ -1,0 +1,6 @@
+num32 mut sum {0};
+for i in 1 .. 5 {
+    num32 squared {i * i};
+    sum := sum + squared;
+}
+print(sum);
